@@ -1,0 +1,160 @@
+# load libraries
+library(shiny)
+library(shinyjs)
+library(shinydashboard)
+library(fresh)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(DT)
+library(rsconnect)
+
+podsearch_df <- read_csv("podsearch_df_04_06_2023_v1.csv")
+
+# Define UI for application that draws a histogram
+ui <- fluidPage(
+  tags$head(tags$style(HTML('* {
+                            font-family: "Space Mono", monospace;
+                            color: #291440;
+                            background-color: #F2EDF9;
+                            }
+                            .shiny-input-container {
+                            color: #291440;
+                            }
+                            .js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {
+                            background: #A64EFF;
+                            }
+                            h1 {
+                            background-color: #A64EFF;
+                            color: #F2EDF9;
+                            padding: 15px
+                            }
+                            h3 {
+                            font-weight: bold;
+                            text-align: justify;
+                            }
+                            h5 {
+                            text-align: left;
+                            font-size: 1.15em;
+                            }
+                            #pod-link {
+                            text-align: center;
+                            }
+                            .btn, button {
+                            display: block;
+                            margin: 20px auto;
+                            height: 50px;
+                            width: 100px;
+                            border-radius: 50%;
+                            border: 2px solid #A64EFF;
+                            }
+                            img {
+                            width: 100%;
+                            height: auto;
+                            padding-bottom: 15px;
+                            padding-top: 15px;
+                            border-radius: 10%;
+                            }'))),
+  titlePanel(h1("PodSearch")),
+  fluidRow(
+    column(2, 
+           # Added slider input alternative
+           sliderInput("number_episodes_slider",
+                       "Select range of episodses:",
+                       min = 1, max = 160,
+                       value = c(1, 160)),
+           selectInput("explicit",
+                       "Explicit:",
+                       c("None",
+                         c("explicit", "not explicit"))),
+           selectInput("zodiac",
+                       "Zodiac:",
+                       c("None",
+                         c("Aries", "Taurus", "Gemini", "Cancer", "Virgo", "Leo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")))),
+    mainPanel(column(12, 
+                     (tabsetPanel(type="tabs",
+                                  tabPanel("Dating", 
+                                           box(
+                                             htmlOutput("filtered_podcast")
+                                           )# end of baby column 2
+                                  ), # end of dating tab
+                                  
+                                  
+                                  tabPanel("Table", 
+                                           box(h2(""),
+                                               h3("All eligible podcasts!"),
+                                               h2(""),
+                                               DT::dataTableOutput("table"))
+                                           
+                                  )
+                                  
+                     ))))))
+
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+
+  # Filter data based on selections
+  output$table <- DT::renderDataTable(DT::datatable({
+    data <- podsearch_df
+    if (input$explicit != "None") {
+      data <- data[data$explicit == input$explicit,]
+    }
+    if (input$zodiac != "None") {
+      data <- data[data$zodiac == input$zodiac,]
+    }
+    data[c("title", "description", "number_episodes", "avg_duration_min", "explicit", "zodiac")]
+    
+  }))
+  
+  output$filtered_podcast <- renderText({
+    
+    if(input$zodiac == "None" | input$explicit == "None" | input$number_episodes_slider[1] == 1 & input$number_episodes_slider[2] == 160) {
+      paste(h2("Use filters to get your match!"))
+    } else{
+      filtered_df <- podsearch_df %>% 
+        filter(zodiac %in% input$zodiac & number_episodes > input$number_episodes_slider[1] & number_episodes <= input$number_episodes_slider[2] & explicit %in% input$explicit)
+      
+      pod_match <- sample_n(filtered_df, 1)
+      
+      pod_match %>% 
+        mutate(title = paste0(h2(""),
+                              h4("Meet your match!"),
+                              h3(),
+                              h3(title),
+                              img(src=paste(zodiac, ".png", sep = "")), # added conditional for zodiac image
+                              h5(description),
+                              column(4,
+                                     h5("Number of Episodes:",number_episodes, "episodes"),
+                                     h5("Birthday (air-date):", birthday)
+                                     
+                              ), # end of baby column 1
+                              column(4,
+                                     h5("Average Duration:", avg_duration_min, "minutes"),
+                                     h5("Zodiac Sign:", zodiac),
+                                     h5("Explicit:", explicit)
+                              ),
+                              column(4,
+                                     h5("Average Ratings:"),
+                                     h5("Category:")
+                                     ),
+                              column(12),
+                              column(12,
+                                     actionButton("shuffleButton", "", icon = icon("random"),
+                                                  onclick = refresh())),
+                              column(12,
+                                     actionButton("podlinkButton", "Show Link", icon = icon("podcast"),
+                                                  onclick = paste0("window.open('", show_link, "', '_blank')") # added link functionality
+                                     )))) %>% 
+        pull(title)
+    }
+    
+    
+    
+  })
+  
+  
+  
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
