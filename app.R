@@ -8,8 +8,11 @@ library(ggplot2)
 library(tidyverse)
 library(DT)
 library(rsconnect)
+library(stringr)
 
-podsearch_df <- read_csv("podsearch_df_04_06_2023_v1.csv")
+podsearch_df <- read_csv("podsearch_df_complete_04_08_2023_v1.csv")
+
+word(podsearch_df[1, "categories"], 1)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -61,16 +64,21 @@ ui <- fluidPage(
            # Added slider input alternative
            sliderInput("number_episodes_slider",
                        "Select range of episodses:",
-                       min = 1, max = 160,
-                       value = c(1, 160)),
+                       min = 1, max = 800,
+                       value = c(1, 800)),
            selectInput("explicit",
                        "Explicit:",
                        c("None",
                          c("explicit", "not explicit"))),
-           selectInput("zodiac",
+           selectInput("zodiac", #Will probably remove this selectinput
                        "Zodiac:",
                        c("None",
-                         c("Aries", "Taurus", "Gemini", "Cancer", "Virgo", "Leo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")))),
+                         c("Aries", "Taurus", "Gemini", "Cancer", "Virgo", "Leo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"))),
+           selectInput("genre",
+                       "Genre/Category:",
+                       c("None",
+                         c("art", "business", "christianity", "comedy", "education", "fiction", "health", "history", "kids", "leisure", "music", "news", "religion", "science", "society", "sprirituality", "sports", "technology", "tv")))
+           ),
     mainPanel(column(12, 
                      (tabsetPanel(type="tabs",
                                   tabPanel("Dating", 
@@ -102,17 +110,21 @@ server <- function(input, output) {
     if (input$zodiac != "None") {
       data <- data[data$zodiac == input$zodiac,]
     }
-    data[c("title", "description", "number_episodes", "avg_duration_min", "explicit", "zodiac")]
+    if (input$genre != "None") {
+      data <- data[data$categories == input$genre,]
+    }
+    data[c("title", "description", "number_episodes", "categories", "explicit", "zodiac")]
     
   }))
   
   output$filtered_podcast <- renderText({
     
-    if(input$zodiac == "None" | input$explicit == "None" | input$number_episodes_slider[1] == 1 & input$number_episodes_slider[2] == 160) {
+    if(input$explicit == "None" | input$number_episodes_slider[1] == 1 & input$number_episodes_slider[2] == 800 | input$genre == "None") {
       paste(h2("Use filters to get your match!"))
     } else{
+      
       filtered_df <- podsearch_df %>% 
-        filter(zodiac %in% input$zodiac & number_episodes > input$number_episodes_slider[1] & number_episodes <= input$number_episodes_slider[2] & explicit %in% input$explicit)
+        filter(number_episodes > input$number_episodes_slider[1] & number_episodes <= input$number_episodes_slider[2] & explicit %in% input$explicit & grepl(input$genre, categories))
       
       pod_match <- sample_n(filtered_df, 1)
       
@@ -129,13 +141,12 @@ server <- function(input, output) {
                                      
                               ), # end of baby column 1
                               column(4,
-                                     h5("Average Duration:", avg_duration_min, "minutes"),
                                      h5("Zodiac Sign:", zodiac),
                                      h5("Explicit:", explicit)
                               ),
                               column(4,
-                                     h5("Average Ratings:"),
-                                     h5("Category:")
+                                     h5("Average Rating:", average_rating),
+                                     h5("Categories:", categories)
                                      ),
                               column(12),
                               column(12,
@@ -146,6 +157,7 @@ server <- function(input, output) {
                                                   onclick = paste0("window.open('", show_link, "', '_blank')") # added link functionality
                                      )))) %>% 
         pull(title)
+      
     }
     
     
