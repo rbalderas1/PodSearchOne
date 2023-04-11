@@ -50,6 +50,7 @@ ui <- fluidPage(
                             width: 100px;
                             border-radius: 50%;
                             border: 2px solid #A64EFF;
+                            font-weight: bold;
                             }
                             img {
                             width: 100%;
@@ -57,7 +58,8 @@ ui <- fluidPage(
                             padding-bottom: 15px;
                             padding-top: 15px;
                             border-radius: 10%;
-                            }'))),
+                            }
+                            '))),
   titlePanel(h1("PodSearch")),
   fluidRow(
     column(2, 
@@ -70,21 +72,22 @@ ui <- fluidPage(
                        "Explicit:",
                        c("None",
                          c("explicit", "not explicit"))),
-           selectInput("zodiac", #Will probably remove this selectinput
-                       "Zodiac:",
-                       c("None",
-                         c("Aries", "Taurus", "Gemini", "Cancer", "Virgo", "Leo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"))),
            selectInput("genre",
                        "Genre/Category:",
                        c("None",
-                         c("art", "business", "christianity", "comedy", "education", "fiction", "health", "history", "kids", "leisure", "music", "news", "religion", "science", "society", "sprirituality", "sports", "technology", "tv")))
+                         c("art", "business", "christianity", "comedy", "education", "fiction", "health", "history", "kids", "leisure", "music", "news", "religion", "science", "society", "spirituality", "sports", "technology", "tv"))),
+           selectInput("zodiac", #Will probably remove this selectinput
+                       "Zodiac:",
+                       c("None",
+                         c("Aries", "Taurus", "Gemini", "Cancer", "Virgo", "Leo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")))
            ),
     mainPanel(column(12, 
                      (tabsetPanel(type="tabs",
                                   tabPanel("Dating", 
                                            box(
-                                             htmlOutput("filtered_podcast")
-                                           )# end of baby column 2
+                                             htmlOutput("filtered_podcast"),
+                                             
+                                           )
                                   ), # end of dating tab
                                   
                                   
@@ -111,7 +114,8 @@ server <- function(input, output) {
       data <- data[data$zodiac == input$zodiac,]
     }
     if (input$genre != "None") {
-      data <- data[data$categories == input$genre,]
+      data <- data %>% 
+        filter(grepl(input$genre, categories))
     }
     data[c("title", "description", "number_episodes", "categories", "explicit", "zodiac")]
     
@@ -127,7 +131,13 @@ server <- function(input, output) {
         filter(number_episodes > input$number_episodes_slider[1] & number_episodes <= input$number_episodes_slider[2] & explicit %in% input$explicit & grepl(input$genre, categories))
       
       pod_match <- sample_n(filtered_df, 1)
-      
+      observeEvent(input$shuffleButton, {
+        
+        filtered_df <- podsearch_df %>% 
+          filter(number_episodes > input$number_episodes_slider[1] & number_episodes <= input$number_episodes_slider[2] & explicit %in% input$explicit & grepl(input$genre, categories))
+        
+        pod_match <- sample_n(filtered_df, 1)
+      })
       pod_match %>% 
         mutate(title = paste0(h2(""),
                               h4("Meet your match!"),
@@ -150,8 +160,12 @@ server <- function(input, output) {
                                      ),
                               column(12),
                               column(12,
-                                     actionButton("shuffleButton", "", icon = icon("random"),
-                                                  onclick = refresh())),
+                                     actionButton("shuffleButton", "Shuffle", icon = icon("random")),
+                                     tags$button(
+                                       id = "shuffle_button",
+                                       class = "btn action-button",
+                                       tags$img(src = "random2.jpg", height = "5%")
+                                     )),
                               column(12,
                                      actionButton("podlinkButton", "Show Link", icon = icon("podcast"),
                                                   onclick = paste0("window.open('", show_link, "', '_blank')") # added link functionality
@@ -163,6 +177,7 @@ server <- function(input, output) {
     
     
   })
+  
   
   
   
