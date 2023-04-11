@@ -67,7 +67,7 @@ ui <- fluidPage(
            sliderInput("number_episodes_slider",
                        "Select range of episodses:",
                        min = 1, max = 800,
-                       value = c(1, 800)),
+                       value = 1),
            selectInput("explicit",
                        "Explicit:",
                        c("None",
@@ -123,18 +123,18 @@ server <- function(input, output) {
   
   output$filtered_podcast <- renderText({
     
-    if(input$explicit == "None" | input$number_episodes_slider[1] == 1 & input$number_episodes_slider[2] == 800 | input$genre == "None") {
+    if(input$explicit == "None" | input$number_episodes_slider == 1 | input$genre == "None") {
       paste(h2("Use filters to get your match!"))
     } else{
       
       filtered_df <- podsearch_df %>% 
-        filter(number_episodes > input$number_episodes_slider[1] & number_episodes <= input$number_episodes_slider[2] & explicit %in% input$explicit & grepl(input$genre, categories))
+        filter(number_episodes <= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
       
       pod_match <- sample_n(filtered_df, 1)
       observeEvent(input$shuffleButton, {
         
         filtered_df <- podsearch_df %>% 
-          filter(number_episodes > input$number_episodes_slider[1] & number_episodes <= input$number_episodes_slider[2] & explicit %in% input$explicit & grepl(input$genre, categories))
+          filter(number_episodes <= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
         
         pod_match <- sample_n(filtered_df, 1)
       })
