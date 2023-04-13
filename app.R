@@ -10,7 +10,16 @@ library(DT)
 library(rsconnect)
 library(stringr)
 
+# reading data in
 podsearch_df <- read_csv("podsearch_df_complete_04_08_2023_v1.csv")
+# making all cells have the same formatting in order to modify
+podsearch_df$birthday <- str_replace(podsearch_df$birthday, "GMT", "+0000")
+# Title casing some columns
+podsearch_df$categories <- str_to_title(podsearch_df$categories)
+podsearch_df$explicit <- str_to_title(podsearch_df$explicit)
+# removing hour and minute from birthday
+podsearch_df <- podsearch_df %>% 
+  mutate(birthday = substr(birthday, 1, 16))
 
 word(podsearch_df[1, "categories"], 1)
 
@@ -34,7 +43,7 @@ ui <- fluidPage(
                             }
                             h3 {
                             font-weight: bold;
-                            text-align: justify;
+                            text-align: center;
                             }
                             h5 {
                             text-align: left;
@@ -47,17 +56,21 @@ ui <- fluidPage(
                             display: block;
                             margin: 20px auto;
                             height: 50px;
-                            width: 100px;
-                            border-radius: 50%;
+                            width: 140px;
+                            border-radius: 20%;
                             border: 2px solid #A64EFF;
                             font-weight: bold;
+                            text-align: center;
                             }
                             img {
-                            width: 100%;
+                            width: 300px;
                             height: auto;
                             padding-bottom: 15px;
                             padding-top: 15px;
                             border-radius: 10%;
+                            display: block;
+                            margin-left: auto;
+                            margin-right: auto;
                             }
                             '))),
   titlePanel(h1("PodSearch")),
@@ -65,28 +78,24 @@ ui <- fluidPage(
     column(2, 
            # Added slider input alternative
            sliderInput("number_episodes_slider",
-                       "Select range of episodses:",
+                       "Select episode minimum:",
                        min = 1, max = 800,
                        value = 1),
            selectInput("explicit",
-                       "Explicit:",
+                       "Rating:",
                        c("None",
-                         c("explicit", "not explicit"))),
+                         c("Explicit", "Not Explicit"))),
            selectInput("genre",
                        "Genre/Category:",
                        c("None",
-                         c("art", "business", "christianity", "comedy", "education", "fiction", "health", "history", "kids", "leisure", "music", "news", "religion", "science", "society", "spirituality", "sports", "technology", "tv"))),
-           selectInput("zodiac", #Will probably remove this selectinput
-                       "Zodiac:",
-                       c("None",
-                         c("Aries", "Taurus", "Gemini", "Cancer", "Virgo", "Leo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")))
+                         c("Art", "Business", "Christianity", "Comedy", "Education", "Fiction", "Health", "History", "Kids", "Leisure", "Music", "News", "Religion", "Science", "Society", "Spirituality", "Sports", "Technology", "Tv")))
            ),
     mainPanel(column(12, 
                      (tabsetPanel(type="tabs",
                                   tabPanel("Dating", 
                                            box(
                                              htmlOutput("filtered_podcast"),
-                                             
+                                             actionButton("shuffleButton", "Shuffle", icon = icon("random"))
                                            )
                                   ), # end of dating tab
                                   
@@ -110,12 +119,13 @@ server <- function(input, output) {
     if (input$explicit != "None") {
       data <- data[data$explicit == input$explicit,]
     }
-    if (input$zodiac != "None") {
-      data <- data[data$zodiac == input$zodiac,]
-    }
     if (input$genre != "None") {
       data <- data %>% 
         filter(grepl(input$genre, categories))
+    }
+    if (input$number_episodes_slider != 1){
+      data <- data %>% 
+        filter(number_episodes >= input$number_episodes_slider)
     }
     data[c("title", "description", "number_episodes", "categories", "explicit", "zodiac")]
     
@@ -128,13 +138,13 @@ server <- function(input, output) {
     } else{
       
       filtered_df <- podsearch_df %>% 
-        filter(number_episodes <= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
+        filter(number_episodes >= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
       
       pod_match <- sample_n(filtered_df, 1)
       observeEvent(input$shuffleButton, {
         
         filtered_df <- podsearch_df %>% 
-          filter(number_episodes <= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
+          filter(number_episodes >= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
         
         pod_match <- sample_n(filtered_df, 1)
       })
@@ -152,7 +162,7 @@ server <- function(input, output) {
                               ), # end of baby column 1
                               column(4,
                                      h5("Zodiac Sign:", zodiac),
-                                     h5("Explicit:", explicit)
+                                     h5("Rating:", explicit)
                               ),
                               column(4,
                                      h5("Average Rating:", average_rating),
@@ -160,16 +170,10 @@ server <- function(input, output) {
                                      ),
                               column(12),
                               column(12,
-                                     actionButton("shuffleButton", "Shuffle", icon = icon("random")),
-                                     tags$button(
-                                       id = "shuffle_button",
-                                       class = "btn action-button",
-                                       tags$img(src = "random2.jpg", height = "5%")
-                                     )),
-                              column(12,
-                                     actionButton("podlinkButton", "Show Link", icon = icon("podcast"),
+                                     actionButton("podlinkButton", "Listen Now", icon = icon("podcast"),
                                                   onclick = paste0("window.open('", show_link, "', '_blank')") # added link functionality
-                                     )))) %>% 
+                                     ))
+                              )) %>% 
         pull(title)
       
     }
