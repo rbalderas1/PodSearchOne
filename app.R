@@ -57,7 +57,7 @@ ui <- fluidPage(
                             margin: 20px auto;
                             height: 50px;
                             width: 140px;
-                            border-radius: 20%;
+                            border-radius: 6%;
                             border: 2px solid #A64EFF;
                             font-weight: bold;
                             text-align: center;
@@ -72,6 +72,9 @@ ui <- fluidPage(
                             margin-left: auto;
                             margin-right: auto;
                             }
+                            #shuffle {
+                            display: block;
+                            }
                             '))),
   titlePanel(h1("PodSearch")),
   fluidRow(
@@ -79,7 +82,7 @@ ui <- fluidPage(
            # Added slider input alternative
            sliderInput("number_episodes_slider",
                        "Select episode minimum:",
-                       min = 1, max = 800,
+                       min = 1, max = 150,
                        value = 1),
            selectInput("explicit",
                        "Rating:",
@@ -95,8 +98,9 @@ ui <- fluidPage(
                                   tabPanel("Dating", 
                                            box(
                                              htmlOutput("filtered_podcast"),
-                                             actionButton("shuffleButton", "Shuffle", icon = icon("random"))
-                                           )
+                                             h2(""),
+                                             actionButton("shuffleButton", "Shuffle", icon = icon("random"), id = "shuffle")
+                                           ),
                                   ), # end of dating tab
                                   
                                   
@@ -141,13 +145,6 @@ server <- function(input, output) {
         filter(number_episodes >= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
       
       pod_match <- sample_n(filtered_df, 1)
-      observeEvent(input$shuffleButton, {
-        
-        filtered_df <- podsearch_df %>% 
-          filter(number_episodes >= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
-        
-        pod_match <- sample_n(filtered_df, 1)
-      })
       pod_match %>% 
         mutate(title = paste0(h2(""),
                               h4("Meet your match!"),
@@ -182,7 +179,13 @@ server <- function(input, output) {
     
   })
   
-  
+  observeEvent(input$shuffleButton, {
+    
+    filtered_df <- podsearch_df %>% 
+      filter(number_episodes >= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
+    
+    pod_match <- sample_n(filtered_df, 1)
+  })
   
   
 }
