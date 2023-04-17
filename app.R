@@ -77,14 +77,10 @@ ui <- fluidPage(
                             margin-left: auto;
                             margin-right: auto;
                             }
-                            #shuffle {
-                            display: block;
-                            }
                             '))),
   titlePanel(h1("PodSearch")),
   fluidRow(
-    column(2, 
-           # Added slider input alternative
+    column(2,
            sliderInput("number_episodes_slider",
                        "Select episode minimum:",
                        min = 1, max = 150,
@@ -97,27 +93,22 @@ ui <- fluidPage(
                        "Genre/Category:",
                        c("None",
                          c("Art", "Business", "Christianity", "Comedy", "Education", "Fiction", "Health", "History", "Kids", "Leisure", "Music", "News", "Religion", "Science", "Society", "Spirituality", "Sports", "Technology", "Tv"))),
-           h5("Note: Select an option from each filter to receive a match."),
-           h6("PodSearch dataset was last updated 04/08/2023"),
+           h5("Note: Select an option from each filter to receive a match."), # Added instructions to make app usage clearer
+           h6("PodSearch dataset was last updated 04/08/2023"), # Added disclaimer of the data the app uses
            ),
     mainPanel(column(12, 
                      (tabsetPanel(type="tabs",
                                   tabPanel("Dating", 
                                            box(
-                                             htmlOutput("filtered_podcast"),
-                                             h2("")
+                                             htmlOutput("filtered_podcast")
                                              ),
-                                  ), # end of dating tab
-                                  
-                                  
+                                           ), # End of dating tab
                                   tabPanel("Table", 
                                            box(h2(""),
                                                h3("All eligible podcasts!"),
                                                h2(""),
                                                DT::dataTableOutput("table"))
-                                           
-                                  )
-                                  
+                                           ) # End of table tab
                      ))))))
 
 # Beginning of Server
@@ -158,13 +149,13 @@ server <- function(input, output) {
                               h4("Meet your match!"),
                               h3(),
                               h3(title),
-                              img(src=paste(zodiac, ".png", sep = "")), # added conditional for zodiac image
+                              img(src=paste(zodiac, ".png", sep = "")),
                               h5(description),
                               column(4,
                                      h5("Number of Episodes:",number_episodes, "episodes"),
                                      h5("Birthday (air-date):", birthday)
                                      
-                              ), # end of baby column 1
+                              ),
                               column(4,
                                      h5("Zodiac Sign:", zodiac),
                                      h5("Rating:", explicit)
