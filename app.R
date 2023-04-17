@@ -1,4 +1,4 @@
-# load libraries
+# Load libraries
 library(shiny)
 library(shinyjs)
 library(shinydashboard)
@@ -10,20 +10,25 @@ library(DT)
 library(rsconnect)
 library(stringr)
 
-# reading data in
+# Reads most recent CSV created by team in
 podsearch_df <- read_csv("podsearch_df_complete_04_08_2023_v1.csv")
-# making all cells have the same formatting in order to modify
+
+# Final mutations to various datapoints within the complete dataset:
+
+# Making all cells have the same formatting in order to modify
 podsearch_df$birthday <- str_replace(podsearch_df$birthday, "GMT", "+0000")
-# Title casing some columns
-podsearch_df$categories <- str_to_title(podsearch_df$categories)
-podsearch_df$explicit <- str_to_title(podsearch_df$explicit)
-# removing hour and minute from birthday
+# Removing hour and minute from birthday
 podsearch_df <- podsearch_df %>% 
   mutate(birthday = substr(birthday, 1, 16))
 
-word(podsearch_df[1, "categories"], 1)
+# Title casing some columns
+podsearch_df$categories <- str_to_title(podsearch_df$categories)
+podsearch_df$explicit <- str_to_title(podsearch_df$explicit)
 
-# Define UI for application that draws a histogram
+# Removes some HTML tags from description strings, replacing with one space
+podsearch_df$description <- gsub("<.*?>", " ", podsearch_df$description)
+
+# Beginning of UI
 ui <- fluidPage(
   tags$head(tags$style(HTML('* {
                             font-family: "Space Mono", monospace;
@@ -91,16 +96,17 @@ ui <- fluidPage(
            selectInput("genre",
                        "Genre/Category:",
                        c("None",
-                         c("Art", "Business", "Christianity", "Comedy", "Education", "Fiction", "Health", "History", "Kids", "Leisure", "Music", "News", "Religion", "Science", "Society", "Spirituality", "Sports", "Technology", "Tv")))
+                         c("Art", "Business", "Christianity", "Comedy", "Education", "Fiction", "Health", "History", "Kids", "Leisure", "Music", "News", "Religion", "Science", "Society", "Spirituality", "Sports", "Technology", "Tv"))),
+           h5("Note: Select an option from each filter to receive a match."),
+           h6("PodSearch dataset was last updated 04/08/2023"),
            ),
     mainPanel(column(12, 
                      (tabsetPanel(type="tabs",
                                   tabPanel("Dating", 
                                            box(
                                              htmlOutput("filtered_podcast"),
-                                             h2(""),
-                                             actionButton("shuffleButton", "Shuffle", icon = icon("random"), id = "shuffle")
-                                           ),
+                                             h2("")
+                                             ),
                                   ), # end of dating tab
                                   
                                   
@@ -114,7 +120,9 @@ ui <- fluidPage(
                                   
                      ))))))
 
-# Define server logic required to draw a histogram
+# Beginning of Server
+
+#########################################################################################################
 server <- function(input, output) {
 
   # Filter data based on selections
@@ -177,14 +185,6 @@ server <- function(input, output) {
     
     
     
-  })
-  
-  observeEvent(input$shuffleButton, {
-    
-    filtered_df <- podsearch_df %>% 
-      filter(number_episodes >= input$number_episodes_slider & explicit %in% input$explicit & grepl(input$genre, categories))
-    
-    pod_match <- sample_n(filtered_df, 1)
   })
   
   
